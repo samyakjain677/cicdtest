@@ -1,5 +1,25 @@
 version: 2.1
 
+
+orbs:
+  slack: circleci/slack@4.10.1
+
+#commands:
+#  notify_slack_error:
+#    steps:
+#      - slack/notify:
+#          channel: 'notification-circleci-demo'
+#          event: fail
+#          template: basic_fail_1
+#
+#  notify_slack_pass:
+#    steps:
+#      - slack/notify:
+#          channel: 'notification-circleci-demo'
+#          event: pass
+#          template: basic_pass_1
+
+
 workflows:
   version: 2
   build_deploy:
@@ -13,6 +33,22 @@ workflows:
       - deploy:
           requires:
             - package
+      - qa:
+          requires:
+#            - build
+#            - test
+            - package
+#
+#      - hold:
+#          type: approval
+#          requires:
+#            - qa
+#
+#      - production:
+#          requires:
+#            - hold
+
+
 
 jobs:
   build:
@@ -21,10 +57,14 @@ jobs:
     steps:
       - checkout
       - run: ./gradlew bootJar
+      - run: apk add --no-cache curl
+      - run: apk add --no-cache jq httpie
       - persist_to_workspace:
           root: ./
           paths:
             - build/
+  #      - run: notify_slack_error
+  #      - run: notify_slack_pass
 
   test:
     docker:
@@ -32,8 +72,12 @@ jobs:
     steps:
       - checkout
       - run: ./gradlew test
+      - run: apk add --no-cache curl
+      - run: apk add --no-cache jq httpie
       - store_test_results:
           path: build/test-results
+  #      - notify_slack_error
+  #      - notify_slack_pass
 
   package:
     docker:
@@ -44,6 +88,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: ./
+      - run: apk add --no-cache curl
+      - run: apk add --no-cache jq httpie
       - run: docker build --iidfile image.txt -t registry.heroku.com/$HEROKU_APP_NAME/web:${CIRCLE_SHA1} .
       - run: docker login --username=_ --password=$HEROKU_TOKEN registry.heroku.com
       - run: docker push registry.heroku.com/$HEROKU_APP_NAME/web:${CIRCLE_SHA1}
@@ -51,6 +97,8 @@ jobs:
           root: ./
           paths:
             - image.txt
+  #      - notify_slack_error
+  #      - notify_slack_pass
 
   deploy:
     docker:
@@ -61,7 +109,45 @@ jobs:
       - attach_workspace:
           at: ./
       - run: apk add --no-cache curl
+      - run: apk add --no-cache jq httpie
       - run:
           name: "Deploy container"
           command: |
             curl -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/formation --header "Content-Type: application/json" --header "Accept: application/vnd.heroku+json; version=3.docker-releases" --header "Authorization: Bearer ${HEROKU_TOKEN}" --data '{ "updates": [ { "type": "web", "docker_image": "'$(cat image.txt)'" } ] }'
+#      - notify_slack_error
+#      - notify_slack_pass
+#
+#  qa:
+#    docker:
+#      - image: docker:dind
+#    steps:
+#      - setup_remote_docker:
+#          version: 19.03.13
+#      - attach_workspace:
+#          at: ./
+#      - run: apk add --no-cache curl
+#      - run: apk add --no-cache jq httpie
+      - run:
+          name: "Deploy container"
+          command: |
+            curl -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/formation --header "Content-Type: application/json" --header "Accept: application/vnd.heroku+json; version=3.docker-releases" --header "Authorization: Bearer ${HEROKU_TOKEN}" --data '{ "updates": [ { "type": "web", "docker_image": "'$(cat image.txt)'" } ] }'
+#      - notify_slack_error
+#      - notify_slack_pass
+#
+#
+#  production:
+#    docker:
+#      - image: docker:dind
+#    steps:
+#      - setup_remote_docker:
+#          version: 19.03.13
+#      - attach_workspace:
+#          at: ./
+#      - run: apk add --no-cache curl
+#      - run: apk add --no-cache jq httpie
+#      - run:
+#          name: "Deploy container"
+#          command: |
+#            curl -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/formation --header "Content-Type: application/json" --header "Accept: application/vnd.heroku+json; version=3.docker-releases" --header "Authorization: Bearer ${HEROKU_TOKEN}" --data '{ "updates": [ { "type": "web", "docker_image": "'$(cat image.txt)'" } ] }'
+#      - notify_slack_error
+#      - notify_slack_pass
