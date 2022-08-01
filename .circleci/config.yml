@@ -4,20 +4,20 @@ version: 2.1
 orbs:
   slack: circleci/slack@4.10.1
 
-#commands:
-#  notify_slack_error:
-#    steps:
-#      - slack/notify:
+commands:
+  notify_slack_error:
+    steps:
+      - slack/notify:
 #          channel: 'notification-circleci-demo'
-#          event: fail
-#          template: basic_fail_1
-#
-#  notify_slack_pass:
-#    steps:
-#      - slack/notify:
+          event: fail
+          template: basic_fail_1
+
+  notify_slack_pass:
+    steps:
+      - slack/notify:
 #          channel: 'notification-circleci-demo'
-#          event: pass
-#          template: basic_pass_1
+          event: pass
+          template: success_tagged_deploy_1
 
 
 workflows:
@@ -63,8 +63,8 @@ jobs:
           root: ./
           paths:
             - build/
-  #      - run: notify_slack_error
-  #      - run: notify_slack_pass
+        - run: notify_slack_error
+        - run: notify_slack_pass
 
   test:
     docker:
@@ -76,8 +76,8 @@ jobs:
       - run: apk add --no-cache jq httpie
       - store_test_results:
           path: build/test-results
-  #      - notify_slack_error
-  #      - notify_slack_pass
+        - notify_slack_error
+        - notify_slack_pass
 
   package:
     docker:
@@ -97,8 +97,8 @@ jobs:
           root: ./
           paths:
             - image.txt
-  #      - notify_slack_error
-  #      - notify_slack_pass
+        - notify_slack_error
+        - notify_slack_pass
 
   deploy:
     docker:
@@ -114,8 +114,8 @@ jobs:
           name: "Deploy container"
           command: |
             curl -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/formation --header "Content-Type: application/json" --header "Accept: application/vnd.heroku+json; version=3.docker-releases" --header "Authorization: Bearer ${HEROKU_TOKEN}" --data '{ "updates": [ { "type": "web", "docker_image": "'$(cat image.txt)'" } ] }'
-  #      - notify_slack_error
-  #      - notify_slack_pass
+        - notify_slack_error
+        - notify_slack_pass
   #
   qa:
     docker:
@@ -131,8 +131,8 @@ jobs:
           name: "Deploy container"
           command: |
             curl -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/formation --header "Content-Type: application/json" --header "Accept: application/vnd.heroku+json; version=3.docker-releases" --header "Authorization: Bearer ${HEROKU_TOKEN}" --data '{ "updates": [ { "type": "web", "docker_image": "'$(cat image.txt)'" } ] }'
-  #      - notify_slack_error
-  #      - notify_slack_pass
+        - notify_slack_error
+        - notify_slack_pass
   #
   #
   production:
@@ -149,5 +149,5 @@ jobs:
           name: "Deploy container"
           command: |
             curl -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/formation --header "Content-Type: application/json" --header "Accept: application/vnd.heroku+json; version=3.docker-releases" --header "Authorization: Bearer ${HEROKU_TOKEN}" --data '{ "updates": [ { "type": "web", "docker_image": "'$(cat image.txt)'" } ] }'
-#      - notify_slack_error
-#      - notify_slack_pass
+      - notify_slack_error
+      - notify_slack_pass
