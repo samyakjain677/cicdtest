@@ -63,8 +63,8 @@ jobs:
           root: ./
           paths:
             - build/
-      - run: notify_slack_error
-      - run: notify_slack_pass
+#      - run: notify_slack_error
+#      - run: notify_slack_pass
 
   test:
     docker:
@@ -76,8 +76,8 @@ jobs:
       - run: apk add --no-cache jq httpie
       - store_test_results:
           path: build/test-results
-      - notify_slack_error
-      - notify_slack_pass
+#      - notify_slack_error
+#      - notify_slack_pass
 
 #  package:
 #    docker:
